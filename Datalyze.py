@@ -98,7 +98,7 @@ if df is not None:
         if df is not None:
             st.write("### 📈 Previsão de Vendas")
             st.write(f"### 📈 Previsão de Vendas em função de {variavel_grafico.capitalize()}")
-                if variavel_grafico == 'dia_semana':
+            if variavel_grafico == 'dia_semana':
             dias_semana = {1: 'Segunda', 2: 'Terça', 3: 'Quarta', 4: 'Quinta', 5: 'Sexta', 6: 'Sábado', 7: 'Domingo'}
             df['dia_semana'] = df['dia_semana'].map(dias_semana)
         df_plot = df[[variavel_grafico, 'vendas', 'previsao_vendas']].groupby(variavel_grafico).mean()
