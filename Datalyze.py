@@ -123,25 +123,72 @@ if df is not None:
     st.write("### 📋 Dados Carregados")
     st.dataframe(df.head())
 
-    # Análise de Previsão de Vendas
-    if analise_selecionada == "Previsão de Vendas":
-        if {'data', 'vendas'}.issubset(df.columns):
+    # Seletor de granularidade APENAS se existir coluna 'data'
+    if 'data' in df.columns:
+        st.sidebar.subheader("🗓️ Configuração do Gráfico")
+        granularidade = st.sidebar.selectbox(
+            "Agrupar vendas por:",
+            ["Dia", "Semana", "Mês"],
+            index=1
+        )
+
+if analise_selecionada == "Previsão de Vendas":
+    if {'data', 'vendas'}.issubset(df.columns):
+        try:
+            # Converter para datetime e ordenar
+            df['data'] = pd.to_datetime(df['data'])
+            df = df.sort_values('data')
+            
+            # Criar coluna de agrupamento temporal
+            if granularidade == "Mês":
+                df['periodo'] = df['data'].dt.to_period('M').dt.to_timestamp()
+            elif granularidade == "Semana":
+                df['periodo'] = df['data'].dt.to_period('W').dt.to_timestamp()
+            else:  # Dia
+                df['periodo'] = df['data']
+
+            # Agregar dados por período
+            df_agrupado = df.groupby('periodo', as_index=False).agg({
+                'vendas': 'sum',
+                'data': 'first'
+            })
+            
+            # Calcular dias desde a primeira data
+            df_agrupado['dias'] = (df_agrupado['periodo'] - df_agrupado['periodo'].min()).dt.days
+            
             # Modelo de Regressão Linear
-            df['dias'] = (df['data'] - df['data'].min()).dt.days
-            model = LinearRegression().fit(df[['dias']], df['vendas'])
-            df['previsao'] = model.predict(df[['dias']])
+            model = LinearRegression().fit(df_agrupado[['dias']], df_agrupado['vendas'])
+            df_agrupado['previsao'] = model.predict(df_agrupado[['dias']])
             
             # Plot
             st.write("### 📈 Previsão de Vendas")
-            fig, ax = plt.subplots()
-            ax.plot(df['data'], df['vendas'], label='Vendas Reais')
-            ax.plot(df['data'], df['previsao'], linestyle='--', label='Previsão')
-            ax.set_xlabel('Data')
-            ax.set_ylabel('Vendas')
+            fig, ax = plt.subplots(figsize=(12, 6))
+            
+            # Plotar dados reais e previsão
+            ax.plot(df_agrupado['periodo'], df_agrupado['vendas'], 
+                    marker='o', label='Vendas Reais')
+            ax.plot(df_agrupado['periodo'], df_agrupado['previsao'], 
+                    linestyle='--', color='red', label='Previsão')
+            
+            # Configurações do gráfico
+            ax.set_title(f"Vendas por {granularidade.lower()} - Modelo de Regressão")
+            ax.set_xlabel("Período")
+            ax.set_ylabel("Vendas (R$)")
             ax.legend()
+            ax.grid(True, alpha=0.3)
+            
+            # Formatando datas conforme granularidade
+            date_format = '%b/%Y' if granularidade == "Mês" else '%d/%m/%Y' if granularidade == "Dia" else 'Sem. %W/%Y'
+            ax.xaxis.set_major_formatter(mdates.DateFormatter(date_format))
+            plt.xticks(rotation=45)
+            plt.tight_layout()
+            
             st.pyplot(fig)
-        else:
-            st.warning("⚠️ Dados incompletos! Necessário colunas 'data' e 'vendas'.")
+            
+        except Exception as e:
+            st.error(f"Erro na geração da previsão: {str(e)}")
+    else:
+        st.warning("⚠️ Dados incompletos! Necessário colunas 'data' e 'vendas'.")
 
     # Análise de Clusterização
     elif analise_selecionada == "Clusterização de Clientes":
