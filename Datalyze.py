@@ -101,7 +101,7 @@ if df is not None:
     if analise_selecionada == "Previsão de Vendas":
         # Adiciona a opção para o usuário escolher a variável para visualização do gráfico
         variavel_grafico = st.sidebar.selectbox("Escolha a variável para visualizar a previsão:", ["horario", "dia_semana", "temperatura"])
-        df, modelo = prever_vendas(df)
+        df = prever_vendas(df)
         if df is not None:
             st.write("### 📈 Previsão de Vendas")
             st.write(f"### 📈 Previsão de Vendas em função de {variavel_grafico.capitalize()}")
