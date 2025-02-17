@@ -125,7 +125,7 @@ if df is not None:
 
     # Análise de Previsão de Vendas
     if analise_selecionada == "Previsão de Vendas":
-        if {'Data', 'Vendas'}.issubset(df.columns):
+        if {'data', 'vendas'}.issubset(df.columns):
             # Modelo de Regressão Linear
             df['dias'] = (df['data'] - df['data'].min()).dt.days
             model = LinearRegression().fit(df[['dias']], df['vendas'])
