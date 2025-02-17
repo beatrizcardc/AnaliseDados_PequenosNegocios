@@ -1,5 +1,5 @@
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,6 +19,12 @@ st.sidebar.subheader("📌 Sobre as Análises Disponíveis")
 st.sidebar.write("**Previsão de Vendas:** Usa regressão linear para estimar vendas futuras com base em fatores como dia da semana, horário e temperatura.")
 st.sidebar.write("**Clusterização de Clientes:** Identifica grupos de clientes com padrões de compra semelhantes para campanhas personalizadas.")
 st.sidebar.write("**Testes Estatísticos:** Compara diferentes grupos de vendas para entender se mudanças no negócio tiveram impacto significativo.")
+
+# Lista de feriados nacionais para evitar previsão nesses dias
+feriados_nacionais = [
+    "2024-01-01", "2024-04-21", "2024-05-01", "2024-09-07", "2024-10-12", "2024-11-02", "2024-11-15", "2024-12-25"
+]
+feriados_nacionais = [pd.Timestamp(date) for date in feriados_nacionais]
 
 # Função para carregar e exibir dados
 def carregar_dados():
@@ -51,10 +57,10 @@ def prever_vendas(df):
         y = df['vendas']
         modelo = LinearRegression().fit(X, y)
         df['previsao_vendas'] = modelo.predict(X)
-        return df
+        return df, modelo
     else:
         st.warning("O arquivo precisa conter as colunas: dia_semana, horario, temperatura, vendas. Por favor, verifique se selecionou a planilha correta. Para a análise de previsão de vendas, selecione a planilha de 'Vendas'.")
-        return None
+        return None, None
 
 # Sidebar
 st.sidebar.title("📂 Opções de Análise")
@@ -67,7 +73,8 @@ if df is not None:
 
     if analise_selecionada == "Previsão de Vendas":
         variavel_grafico = st.sidebar.selectbox("Escolha a variável para visualizar a previsão:", ["horario", "dia_semana", "temperatura"])
-        df = prever_vendas(df)
+        df, modelo = prever_vendas(df)
+        
         if df is not None:
             st.write(f"### 📈 Previsão de Vendas vs. Vendas Reais em função de {variavel_grafico.capitalize()}")
             
@@ -79,6 +86,17 @@ if df is not None:
             
             df_plot = df[[variavel_grafico, 'vendas', 'previsao_vendas']].groupby(variavel_grafico).mean()
             st.line_chart(df_plot)
+
+        # Permitir ao usuário prever vendas futuras
+        futura_data = st.sidebar.date_input("Selecione uma data futura:")
+        if futura_data not in feriados_nacionais and futura_data.weekday() != 6:  # Exclui domingos e feriados
+            dia_semana_futuro = futura_data.weekday() + 1
+            temperatura_futura = st.sidebar.number_input("Temperatura esperada no dia", min_value=0.0, max_value=50.0, value=25.0)
+            horario_futuro = st.sidebar.slider("Escolha um horário", 8, 22, 12)
+            previsao = modelo.predict([[dia_semana_futuro, horario_futuro, temperatura_futura]])
+            st.write(f"### 📈 Previsão de Vendas para {futura_data.strftime('%d/%m/%Y')}: {previsao[0]:.2f}")
+        else:
+            st.warning("A loja está fechada neste dia (Domingo ou Feriado)")
     
     st.sidebar.button("🗑️ Limpar Dados", on_click=lambda: st.session_state.pop('df', None))
 
