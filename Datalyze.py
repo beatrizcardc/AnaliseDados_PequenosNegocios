@@ -94,7 +94,7 @@ def testes_estatisticos(df):
 if 'df' in st.session_state and st.session_state['df'] is not None:
     df = st.session_state['df']
     
-    Verificar se 'data' existe antes de aplicar a conversão
+    #Verificar se 'data' existe antes de aplicar a conversão
     if 'data' in df.columns:
         df['data'] = pd.to_datetime(df['data'])
         data_min, data_max = df['data'].min(), df['data'].max()
