@@ -69,34 +69,6 @@ def prever_vendas(df):
         st.warning("O arquivo precisa conter as colunas: dia_semana, horario, temperatura, vendas, categoria_produto. Por favor, verifique se selecionou a planilha correta. Para a análise de previsão de vendas, selecione a planilha de 'Vendas'.")
         return None, None, None
 
-# Função de clusterização
-def clusterizar_clientes(df):
-    if {'idade', 'frequencia_compra', 'gasto_medio'}.issubset(df.columns):
-        kmeans = KMeans(n_clusters=3, random_state=42).fit(df[['idade', 'frequencia_compra', 'gasto_medio']])
-        df['cluster'] = kmeans.labels_
-        return df
-    else:
-        st.warning("O arquivo precisa conter as colunas: idade, frequencia_compra, gasto_medio. Por favor, verifique se selecionou a planilha correta. Para a análise de clusterização de clientes, selecione a planilha de 'Clientes'.")
-        return None
-
-# Função de testes estatísticos
-def testes_estatisticos(df):
-    if {'grupo', 'vendas'}.issubset(df.columns):
-        grupos = df.groupby('grupo')['vendas'].apply(list)
-        explicacao = "O Teste T é usado para comparar a média de dois grupos distintos e verificar se há diferença estatisticamente significativa entre eles. Se o p-valor for menor que 0.05, rejeitamos a hipótese nula, indicando que há uma diferença significativa. Caso contrário, não há evidências suficientes para afirmar que os grupos são diferentes."
-        if len(grupos) == 2:
-            stat, p = ttest_ind(grupos.iloc[0], grupos.iloc[1])
-            return "Teste T", p, explicacao
-        elif len(grupos) > 2:
-            stat, p = f_oneway(*grupos)
-            explicacao = "A Análise de Variância (ANOVA) é utilizada para comparar a média de três ou mais grupos e verificar se pelo menos um deles é significativamente diferente dos outros. Se o p-valor for menor que 0.05, há evidências de que pelo menos um grupo é diferente."
-            return "ANOVA", p, explicacao
-        else:
-            st.warning("O arquivo precisa conter as colunas: grupo, vendas. Por favor, verifique se selecionou a planilha correta. Para os testes estatísticos, selecione a planilha de 'Testes'.")
-        return None, None, ""
-    else:
-        return None, None, ""
-
 # Limita a previsão de vendas até 31 de dezembro de 2026
 data_limite = pd.Timestamp("2026-12-31")
 
@@ -115,24 +87,19 @@ if df is not None:
         
         if df is not None:
             st.write(f"### 📈 Previsão de Vendas vs. Vendas Reais para Produto {produto_selecionado} em função de {variavel_grafico.capitalize()}")
-            
             df_plot = df[[variavel_grafico, 'vendas', 'previsao_vendas']].groupby(variavel_grafico).mean()
             st.line_chart(df_plot)
 
-        # Permitir ao usuário prever vendas futuras para o produto selecionado
-        futura_data = st.sidebar.date_input("Selecione uma data futura:")
-        if futura_data <= data_limite and futura_data not in feriados_nacionais and futura_data.weekday() != 6:
+        # Permitir ao usuário prever vendas futuras para o produto selecionado (opcional)
+        futura_data = st.sidebar.date_input("Selecione uma data futura (opcional):", value=None, key="futura_data")
+        if futura_data and futura_data <= data_limite and futura_data not in feriados_nacionais and futura_data.weekday() != 6:
             dia_semana_futuro = futura_data.weekday() + 1
             temperatura_futura = st.sidebar.number_input("Temperatura esperada no dia", min_value=0.0, max_value=50.0, value=25.0)
             horario_futuro = st.sidebar.slider("Escolha um horário", 8, 22, 12)
             previsao = modelo.predict([[dia_semana_futuro, horario_futuro, temperatura_futura]])
             st.write(f"### 📈 Previsão de Vendas para Produto {produto_selecionado} em {futura_data.strftime('%d/%m/%Y')}: {previsao[0]:.2f}")
-        else:
-            st.warning("Previsão inválida (Feriado, Domingo ou além de 2026).")
     
     st.sidebar.button("🗑️ Limpar Dados", on_click=lambda: st.session_state.pop('df', None))
-
-
 
 # Rodapé
 st.markdown("---")
