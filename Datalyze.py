@@ -20,9 +20,11 @@ st.sidebar.write("**Previsão de Vendas:** Usa regressão linear para estimar ve
 st.sidebar.write("**Clusterização de Clientes:** Identifica grupos de clientes com padrões de compra semelhantes para campanhas personalizadas.")
 st.sidebar.write("**Testes Estatísticos:** Compara diferentes grupos de vendas para entender se mudanças no negócio tiveram impacto significativo.")
 
-# Lista de feriados nacionais para evitar previsão nesses dias
+# Lista de feriados nacionais de 2024 a 2026
 feriados_nacionais = [
-    "2024-01-01", "2024-04-21", "2024-05-01", "2024-09-07", "2024-10-12", "2024-11-02", "2024-11-15", "2024-12-25"
+    "2024-01-01", "2024-04-21", "2024-05-01", "2024-09-07", "2024-10-12", "2024-11-02", "2024-11-15", "2024-12-25",
+    "2025-01-01", "2025-04-21", "2025-05-01", "2025-09-07", "2025-10-12", "2025-11-02", "2025-11-15", "2025-12-25",
+    "2026-01-01", "2026-04-21", "2026-05-01", "2026-09-07", "2026-10-12", "2026-11-02", "2026-11-15", "2026-12-25"
 ]
 feriados_nacionais = [pd.Timestamp(date) for date in feriados_nacionais]
 
@@ -52,15 +54,23 @@ def carregar_dados():
 
 # Função de previsão de vendas
 def prever_vendas(df):
-    if {'dia_semana', 'horario', 'temperatura', 'vendas'}.issubset(df.columns):
-        X = df[['dia_semana', 'horario', 'temperatura']]
-        y = df['vendas']
+    if {'dia_semana', 'horario', 'temperatura', 'vendas', 'categoria_produto'}.issubset(df.columns):
+        df['categoria_produto'] = df['categoria_produto'].astype(str)
+        df['categoria_produto'] = df['categoria_produto'].astype('category').cat.codes + 1  # Classifica de 1 a 5
+        produto_selecionado = st.sidebar.selectbox("Escolha um produto para prever vendas (1-5):", sorted(df['categoria_produto'].unique()))
+        df_filtrado = df[df['categoria_produto'] == produto_selecionado]
+        
+        X = df_filtrado[['dia_semana', 'horario', 'temperatura']]
+        y = df_filtrado['vendas']
         modelo = LinearRegression().fit(X, y)
-        df['previsao_vendas'] = modelo.predict(X)
-        return df, modelo
+        df_filtrado['previsao_vendas'] = modelo.predict(X)
+        return df_filtrado, modelo, produto_selecionado
     else:
-        st.warning("O arquivo precisa conter as colunas: dia_semana, horario, temperatura, vendas. Por favor, verifique se selecionou a planilha correta. Para a análise de previsão de vendas, selecione a planilha de 'Vendas'.")
-        return None, None
+        st.warning("O arquivo precisa conter as colunas: dia_semana, horario, temperatura, vendas, categoria_produto. Por favor, verifique se selecionou a planilha correta. Para a análise de previsão de vendas, selecione a planilha de 'Vendas'.")
+        return None, None, None
+
+# Limita a previsão de vendas até 31 de dezembro de 2026
+data_limite = pd.Timestamp("2026-12-31")
 
 # Sidebar
 st.sidebar.title("📂 Opções de Análise")
@@ -73,32 +83,27 @@ if df is not None:
 
     if analise_selecionada == "Previsão de Vendas":
         variavel_grafico = st.sidebar.selectbox("Escolha a variável para visualizar a previsão:", ["horario", "dia_semana", "temperatura"])
-        df, modelo = prever_vendas(df)
+        df, modelo, produto_selecionado = prever_vendas(df)
         
         if df is not None:
-            st.write(f"### 📈 Previsão de Vendas vs. Vendas Reais em função de {variavel_grafico.capitalize()}")
-            
-            if variavel_grafico == 'dia_semana':
-                dias_semana = {7: 'Domingo', 1: 'Segunda', 2: 'Terça', 3: 'Quarta', 4: 'Quinta', 5: 'Sexta', 6: 'Sábado'}
-                df['dia_semana'] = df['dia_semana'].map(dias_semana)
-                df['dia_semana'] = pd.Categorical(df['dia_semana'], categories=["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"], ordered=True)
-                df = df.sort_values(by='dia_semana')
+            st.write(f"### 📈 Previsão de Vendas vs. Vendas Reais para Produto {produto_selecionado} em função de {variavel_grafico.capitalize()}")
             
             df_plot = df[[variavel_grafico, 'vendas', 'previsao_vendas']].groupby(variavel_grafico).mean()
             st.line_chart(df_plot)
 
-        # Permitir ao usuário prever vendas futuras
+        # Permitir ao usuário prever vendas futuras para o produto selecionado
         futura_data = st.sidebar.date_input("Selecione uma data futura:")
-        if futura_data not in feriados_nacionais and futura_data.weekday() != 6:  # Exclui domingos e feriados
+        if futura_data <= data_limite and futura_data not in feriados_nacionais and futura_data.weekday() != 6:
             dia_semana_futuro = futura_data.weekday() + 1
             temperatura_futura = st.sidebar.number_input("Temperatura esperada no dia", min_value=0.0, max_value=50.0, value=25.0)
             horario_futuro = st.sidebar.slider("Escolha um horário", 8, 22, 12)
             previsao = modelo.predict([[dia_semana_futuro, horario_futuro, temperatura_futura]])
-            st.write(f"### 📈 Previsão de Vendas para {futura_data.strftime('%d/%m/%Y')}: {previsao[0]:.2f}")
+            st.write(f"### 📈 Previsão de Vendas para Produto {produto_selecionado} em {futura_data.strftime('%d/%m/%Y')}: {previsao[0]:.2f}")
         else:
-            st.warning("A loja está fechada neste dia (Domingo ou Feriado)")
+            st.warning("Previsão inválida (Feriado, Domingo ou além de 2026).")
     
     st.sidebar.button("🗑️ Limpar Dados", on_click=lambda: st.session_state.pop('df', None))
+
 
 
 # Rodapé
