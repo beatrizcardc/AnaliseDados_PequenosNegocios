@@ -215,7 +215,7 @@ if analise_selecionada == "Previsão de Vendas":
             else:
                 st.info("Nenhuma diferença significativa encontrada. Isso sugere que os grupos analisados têm médias semelhantes.")
     
-    st.sidebar.button("🗑️ Limpar Dados", on_click=lambda: st.session_state.pop('df', None))
+st.sidebar.button("🗑️ Limpar Dados", on_click=lambda: st.session_state.pop('df', None))
 
     
     
