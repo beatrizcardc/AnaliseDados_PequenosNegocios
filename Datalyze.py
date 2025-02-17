@@ -69,6 +69,34 @@ def prever_vendas(df):
         st.warning("O arquivo precisa conter as colunas: dia_semana, horario, temperatura, vendas, categoria_produto. Por favor, verifique se selecionou a planilha correta. Para a análise de previsão de vendas, selecione a planilha de 'Vendas'.")
         return None, None, None
 
+# Função de clusterização
+def clusterizar_clientes(df):
+    if {'idade', 'frequencia_compra', 'gasto_medio'}.issubset(df.columns):
+        kmeans = KMeans(n_clusters=3, random_state=42).fit(df[['idade', 'frequencia_compra', 'gasto_medio']])
+        df['cluster'] = kmeans.labels_
+        return df
+    else:
+        st.warning("O arquivo precisa conter as colunas: idade, frequencia_compra, gasto_medio. Por favor, verifique se selecionou a planilha correta. Para a análise de clusterização de clientes, selecione a planilha de 'Clientes'.")
+        return None
+
+# Função de testes estatísticos
+def testes_estatisticos(df):
+    if {'grupo', 'vendas'}.issubset(df.columns):
+        grupos = df.groupby('grupo')['vendas'].apply(list)
+        explicacao = "O Teste T é usado para comparar a média de dois grupos distintos e verificar se há diferença estatisticamente significativa entre eles. Se o p-valor for menor que 0.05, rejeitamos a hipótese nula, indicando que há uma diferença significativa. Caso contrário, não há evidências suficientes para afirmar que os grupos são diferentes."
+        if len(grupos) == 2:
+            stat, p = ttest_ind(grupos.iloc[0], grupos.iloc[1])
+            return "Teste T", p, explicacao
+        elif len(grupos) > 2:
+            stat, p = f_oneway(*grupos)
+            explicacao = "A Análise de Variância (ANOVA) é utilizada para comparar a média de três ou mais grupos e verificar se pelo menos um deles é significativamente diferente dos outros. Se o p-valor for menor que 0.05, há evidências de que pelo menos um grupo é diferente."
+            return "ANOVA", p, explicacao
+        else:
+            st.warning("O arquivo precisa conter as colunas: grupo, vendas. Por favor, verifique se selecionou a planilha correta. Para os testes estatísticos, selecione a planilha de 'Testes'.")
+        return None, None, ""
+    else:
+        return None, None, ""
+
 # Limita a previsão de vendas até 31 de dezembro de 2026
 data_limite = pd.Timestamp("2026-12-31")
 
