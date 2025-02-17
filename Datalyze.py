@@ -33,12 +33,11 @@ def carregar_dados():
             df = pd.read_excel(xls, sheet_name=sheet_selecionada)
         
         # Verifica se a coluna de data existe e adiciona o filtro
+        # Verifica se a coluna de data existe, mas não adiciona `date_input` aqui
         if 'data' in df.columns:
             df['data'] = pd.to_datetime(df['data'])
-            data_min, data_max = df['data'].min(), df['data'].max()
-            st.sidebar.subheader("📆 Filtro de Período")
-            data_inicio, data_fim = st.sidebar.date_input("Selecione o período:", [data_min, data_max], data_min, data_max)
-            df = df[(df['data'] >= pd.Timestamp(data_inicio)) & (df['data'] <= pd.Timestamp(data_fim))]
+        else:
+            st.warning("A coluna 'data' não foi encontrada no arquivo. Verifique se selecionou a planilha correta.")
         
         st.session_state['df'] = df
         return df
