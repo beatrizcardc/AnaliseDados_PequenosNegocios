@@ -49,22 +49,26 @@ if uploaded_file is not None:
     # Seção 2: Perfil dos Clientes por Produto
     st.header("👥 Perfil dos Clientes por Produto")
     produto_selecionado = st.selectbox("Selecione um produto para análise de perfil de clientes:", df_vendas["Produto"].unique())
-    df_clientes_produto = df_vendas[df_vendas["Produto"] == produto_selecionado].merge(df_clientes, on="Nome do Cliente", how="left")
     
-    if not df_clientes_produto.empty:
-        st.write("**Idade Média:**", round(df_clientes_produto["Idade"].mean(), 1))
-        st.write("**Ticket Médio:** R$", round(df_clientes_produto["Gasto Médio"].mean(), 2))
-        st.write("**Frequência de Compra Média:**", round(df_clientes_produto["Frequência de Compra"].mean(), 1))
+    if "Nome do Cliente" in df_vendas.columns and "Nome do Cliente" in df_clientes.columns:
+        df_clientes_produto = df_vendas[df_vendas["Produto"] == produto_selecionado].merge(df_clientes, on="Nome do Cliente", how="left")
         
-        # Gráfico de distribuição de idade
-        fig, ax = plt.subplots()
-        df_clientes_produto["Idade"].hist(bins=10, ax=ax, color="teal")
-        ax.set_title("Distribuição de Idade dos Compradores")
-        ax.set_xlabel("Idade")
-        ax.set_ylabel("Quantidade")
-        st.pyplot(fig)
+        if not df_clientes_produto.empty:
+            st.write("**Idade Média:**", round(df_clientes_produto["Idade"].mean(), 1))
+            st.write("**Ticket Médio:** R$", round(df_clientes_produto["Gasto Médio"].mean(), 2))
+            st.write("**Frequência de Compra Média:**", round(df_clientes_produto["Frequência de Compra"].mean(), 1))
+            
+            # Gráfico de distribuição de idade
+            fig, ax = plt.subplots()
+            df_clientes_produto["Idade"].hist(bins=10, ax=ax, color="teal")
+            ax.set_title("Distribuição de Idade dos Compradores")
+            ax.set_xlabel("Idade")
+            ax.set_ylabel("Quantidade")
+            st.pyplot(fig)
+        else:
+            st.warning("Não há dados suficientes para este produto.")
     else:
-        st.warning("Não há dados suficientes para este produto.")
+        st.warning("A coluna 'Nome do Cliente' não foi encontrada em uma das planilhas.")
 
     # Seção 3: Previsão de Vendas
     st.header("📈 Previsão de Vendas")
@@ -96,4 +100,5 @@ if uploaded_file is not None:
 # Rodapé
 st.markdown("---")
 st.markdown("**📧 Contato:** Beatriz Cardoso Cunha | Email: beacarcun@gmail.com | LinkedIn: [Perfil LinkedIn](https://www.linkedin.com/in/beatriz-cardoso-cunha/)")
+
 
