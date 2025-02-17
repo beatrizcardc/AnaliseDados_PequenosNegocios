@@ -7,11 +7,11 @@ from sklearn.cluster import KMeans
 from scipy.stats import ttest_ind, f_oneway
 
 # Configuração da página
-st.set_page_config(page_title="Datalyze - Conectando dados e estratégia", layout="wide")
+st.set_page_config(page_title="Datalyze - Análise Inteligente de Negócios", layout="wide")
 
 # Título do App
-st.title("📊 Datalyze")
-st.write("Conectando dados e estratégia. Aqui você pode carregar seus dados e aplicar técnicas de análise para obter insights valiosos.")
+st.title("📊 Datalyze - Análise Inteligente de Negócios")
+st.write("Bem-vindo! Aqui você pode carregar seus dados e aplicar técnicas de análise para obter insights valiosos.")
 
 # Explicação das técnicas
 st.sidebar.subheader("📌 Sobre as Análises Disponíveis")
@@ -26,7 +26,18 @@ def carregar_dados():
         if uploaded_file.name.endswith(".csv"):
             df = pd.read_csv(uploaded_file)
         else:
-            df = pd.read_excel(uploaded_file)
+            xls = pd.ExcelFile(uploaded_file)
+            planilhas = xls.sheet_names
+            sheet_selecionada = st.sidebar.selectbox("Escolha a planilha:", planilhas)
+            df = pd.read_excel(xls, sheet_name=sheet_selecionada)
+        
+        # Verifica se a coluna de data existe
+        if 'data' in df.columns:
+            df['data'] = pd.to_datetime(df['data'])
+            data_min, data_max = df['data'].min(), df['data'].max()
+            data_inicio, data_fim = st.sidebar.date_input("Selecione o período:", [data_min, data_max], data_min, data_max)
+            df = df[(df['data'] >= pd.Timestamp(data_inicio)) & (df['data'] <= pd.Timestamp(data_fim))]
+        
         st.session_state['df'] = df
         return df
     return None
