@@ -104,7 +104,7 @@ if 'df' in st.session_state and st.session_state['df'] is not None:
         st.warning("A coluna 'data' não foi encontrada no arquivo. Verifique se selecionou a planilha correta.")
 
 st.sidebar.title("📂 Opções de Análise")
-analise_selecionada = st.sidebar.selectbox("Escolha uma análise", ["Previsão de Vendas", "Clusterização de Clientes", "Testes Estatísticos"])
+
 
 # Carregar os dados
 df = carregar_dados()
