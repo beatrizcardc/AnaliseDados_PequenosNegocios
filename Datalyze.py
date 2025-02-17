@@ -52,6 +52,23 @@ def carregar_dados():
         return df
     return None
 
+# Função de previsão de vendas
+def prever_vendas(df):
+    if {'dia_semana', 'horario', 'temperatura', 'vendas', 'categoria_produto'}.issubset(df.columns):
+        df['categoria_produto'] = df['categoria_produto'].astype(str)
+        df['categoria_produto'] = df['categoria_produto'].astype('category').cat.codes + 1  # Classifica de 1 a 5
+        produto_selecionado = st.sidebar.selectbox("Escolha um produto para prever vendas (1-5):", sorted(df['categoria_produto'].unique()))
+        df_filtrado = df[df['categoria_produto'] == produto_selecionado]
+        
+        X = df_filtrado[['dia_semana', 'horario', 'temperatura']]
+        y = df_filtrado['vendas']
+        modelo = LinearRegression().fit(X, y)
+        df_filtrado['previsao_vendas'] = modelo.predict(X)
+        return df_filtrado, modelo, produto_selecionado
+    else:
+        st.warning("O arquivo precisa conter as colunas: dia_semana, horario, temperatura, vendas, categoria_produto. Por favor, verifique se selecionou a planilha correta. Para a análise de previsão de vendas, selecione a planilha de 'Vendas'.")
+        return None, None, None
+
 # Função de clusterização
 def clusterizar_clientes(df):
     if {'idade', 'frequencia_compra', 'gasto_medio'}.issubset(df.columns):
