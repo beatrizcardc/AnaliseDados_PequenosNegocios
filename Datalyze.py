@@ -92,11 +92,18 @@ def testes_estatisticos(df):
 
 # Sidebar
 # Filtro de período para todas as análises
-if 'df' in st.session_state and st.session_state['df'] is not None and 'data' in st.session_state['df'].columns:
-    df['data'] = pd.to_datetime(df['data'])
-    data_min, data_max = df['data'].min(), df['data'].max()
-    data_inicio, data_fim = st.sidebar.date_input("Selecione o período:", [data_min, data_max], data_min, data_max)
-    df = df[(df['data'] >= pd.Timestamp(data_inicio)) & (df['data'] <= pd.Timestamp(data_fim))]
+if 'df' in st.session_state and st.session_state['df'] is not None:
+    df = st.session_state['df']
+    
+    # Verificar se 'data' existe antes de aplicar a conversão
+    if 'data' in df.columns:
+        df['data'] = pd.to_datetime(df['data'])
+        data_min, data_max = df['data'].min(), df['data'].max()
+        data_inicio, data_fim = st.sidebar.date_input("Selecione o período:", [data_min, data_max], data_min, data_max)
+        df = df[(df['data'] >= pd.Timestamp(data_inicio)) & (df['data'] <= pd.Timestamp(data_fim))]
+    else:
+        st.warning("A coluna 'data' não foi encontrada no arquivo. Verifique se selecionou a planilha correta.")
+
 st.sidebar.title("📂 Opções de Análise")
 analise_selecionada = st.sidebar.selectbox("Escolha uma análise", ["Previsão de Vendas", "Clusterização de Clientes", "Testes Estatísticos"])
 
