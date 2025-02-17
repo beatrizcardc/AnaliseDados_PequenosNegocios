@@ -34,10 +34,10 @@ def carregar_dados():
         
         # Verifica se a coluna de data existe
         if 'data' in df.columns:
-            df['data'] = pd.to_datetime(df['data'])
-            data_min, data_max = df['data'].min(), df['data'].max()
+            st.session_state['df']['data'] = pd.to_datetime(st.session_state['df']['data'])
+            data_min, data_max = st.session_state['df']['data'].min(), st.session_state['df']['data'].max()
             data_inicio, data_fim = st.sidebar.date_input("Selecione o período:", [data_min, data_max], data_min, data_max)
-            df = df[(df['data'] >= pd.Timestamp(data_inicio)) & (df['data'] <= pd.Timestamp(data_fim))]
+            st.session_state['df'] = st.session_state['df'][(st.session_state['df']['data'] >= pd.Timestamp(data_inicio)) & (st.session_state['df']['data'] <= pd.Timestamp(data_fim))]
         
         st.session_state['df'] = df
         return df
@@ -57,7 +57,7 @@ def prever_vendas(df):
 
 # Sidebar
 # Filtro de período para todas as análises
-if df is not None and 'data' in df.columns:
+if 'df' in st.session_state and st.session_state['df'] is not None and 'data' in st.session_state['df'].columns:
     df['data'] = pd.to_datetime(df['data'])
     data_min, data_max = df['data'].min(), df['data'].max()
     data_inicio, data_fim = st.sidebar.date_input("Selecione o período:", [data_min, data_max], data_min, data_max)
