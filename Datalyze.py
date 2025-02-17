@@ -52,23 +52,6 @@ def carregar_dados():
         return df
     return None
 
-# Função de previsão de vendas
-def prever_vendas(df):
-    if {'dia_semana', 'horario', 'temperatura', 'vendas', 'categoria_produto'}.issubset(df.columns):
-        df['categoria_produto'] = df['categoria_produto'].astype(str)
-        df['categoria_produto'] = df['categoria_produto'].astype('category').cat.codes + 1  # Classifica de 1 a 5
-        produto_selecionado = st.sidebar.selectbox("Escolha um produto para prever vendas (1-5):", sorted(df['categoria_produto'].unique()))
-        df_filtrado = df[df['categoria_produto'] == produto_selecionado]
-        
-        X = df_filtrado[['dia_semana', 'horario', 'temperatura']]
-        y = df_filtrado['vendas']
-        modelo = LinearRegression().fit(X, y)
-        df_filtrado['previsao_vendas'] = modelo.predict(X)
-        return df_filtrado, modelo, produto_selecionado
-    else:
-        st.warning("O arquivo precisa conter as colunas: dia_semana, horario, temperatura, vendas, categoria_produto. Por favor, verifique se selecionou a planilha correta. Para a análise de previsão de vendas, selecione a planilha de 'Vendas'.")
-        return None, None, None
-
 # Função de clusterização
 def clusterizar_clientes(df):
     if {'idade', 'frequencia_compra', 'gasto_medio'}.issubset(df.columns):
@@ -105,22 +88,6 @@ if df is not None:
     st.write("### 📋 Dados Carregados")
     st.dataframe(df.head())
 
-    if analise_selecionada == "Previsão de Vendas":
-        variavel_grafico = st.sidebar.selectbox("Escolha a variável para visualizar a previsão:", ["horario", "dia_semana", "temperatura"])
-        df = prever_vendas(df)
-        
-        if df is not None:
-            st.write(f"### 📈 Previsão de Vendas vs. Vendas Reais em função de {variavel_grafico.capitalize()}")
-            
-            if variavel_grafico == 'dia_semana':
-                dias_semana = {1: 'Domingo', 2: 'Segunda', 3: 'Terça', 4: 'Quarta', 5: 'Quinta', 6: 'Sexta', 7: 'Sábado'}
-                df['dia_semana'] = df['dia_semana'].map(dias_semana)
-                df['dia_semana'] = pd.Categorical(df['dia_semana'], categories=["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"], ordered=True)
-                df = df.sort_values(by='dia_semana')
-            
-            df_plot = df[[variavel_grafico, 'vendas', 'previsao_vendas']].groupby(variavel_grafico).mean()
-            st.line_chart(df_plot)
-
     if analise_selecionada == "Clusterização de Clientes":
         df = clusterizar_clientes(df)
         if df is not None:
@@ -146,6 +113,9 @@ if df is not None:
                 st.info("Nenhuma diferença significativa encontrada. Isso sugere que os grupos analisados têm médias semelhantes.")
     
     st.sidebar.button("🗑️ Limpar Dados", on_click=lambda: st.session_state.pop('df', None))
+
+    
+    
 
 # Rodapé
 st.markdown("---")
