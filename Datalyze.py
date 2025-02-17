@@ -114,7 +114,12 @@ if df is not None:
     st.write("### 📋 Dados Carregados (Top 10 Produtos Mais Vendidos)")
     st.dataframe(df.head())
 
-    analise_selecionada = st.sidebar.selectbox("Escolha uma análise", ["Previsão de Vendas", "Clusterização de Clientes", "Testes Estatísticos"])
+    analise_selecionada = st.sidebar.selectbox(
+    "Escolha uma análise", 
+    ["Previsão de Vendas", "Clusterização de Clientes", "Testes Estatísticos"], 
+    key="analise_selecao"
+)
+
 
 #if df is not None:
     #st.write("### 📋 Dados Carregados")
