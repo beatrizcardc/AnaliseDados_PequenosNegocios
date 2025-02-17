@@ -32,12 +32,13 @@ def carregar_dados():
             sheet_selecionada = st.sidebar.selectbox("Escolha a planilha:", planilhas)
             df = pd.read_excel(xls, sheet_name=sheet_selecionada)
         
-        # Verifica se a coluna de data existe
+        # Verifica se a coluna de data existe e adiciona o filtro
         if 'data' in df.columns:
-            st.session_state['df']['data'] = pd.to_datetime(st.session_state['df']['data'])
-            data_min, data_max = st.session_state['df']['data'].min(), st.session_state['df']['data'].max()
+            df['data'] = pd.to_datetime(df['data'])
+            data_min, data_max = df['data'].min(), df['data'].max()
+            st.sidebar.subheader("📆 Filtro de Período")
             data_inicio, data_fim = st.sidebar.date_input("Selecione o período:", [data_min, data_max], data_min, data_max)
-            st.session_state['df'] = st.session_state['df'][(st.session_state['df']['data'] >= pd.Timestamp(data_inicio)) & (st.session_state['df']['data'] <= pd.Timestamp(data_fim))]
+            df = df[(df['data'] >= pd.Timestamp(data_inicio)) & (df['data'] <= pd.Timestamp(data_fim))]
         
         st.session_state['df'] = df
         return df
@@ -56,12 +57,6 @@ def prever_vendas(df):
         return None, None
 
 # Sidebar
-# Filtro de período para todas as análises
-if 'df' in st.session_state and st.session_state['df'] is not None and 'data' in st.session_state['df'].columns:
-    df['data'] = pd.to_datetime(df['data'])
-    data_min, data_max = df['data'].min(), df['data'].max()
-    data_inicio, data_fim = st.sidebar.date_input("Selecione o período:", [data_min, data_max], data_min, data_max)
-    df = df[(df['data'] >= pd.Timestamp(data_inicio)) & (df['data'] <= pd.Timestamp(data_fim))]
 st.sidebar.title("📂 Opções de Análise")
 analise_selecionada = st.sidebar.selectbox("Escolha uma análise", ["Previsão de Vendas", "Clusterização de Clientes", "Testes Estatísticos"])
 df = carregar_dados()
@@ -75,15 +70,14 @@ if df is not None:
         variavel_grafico = st.sidebar.selectbox("Escolha a variável para visualizar a previsão:", ["horario", "dia_semana", "temperatura"])
         df, modelo = prever_vendas(df)
         if df is not None:
-            st.write("### 📈 Previsão de Vendas")
-            st.write(f"### 📈 Previsão de Vendas em função de {variavel_grafico.capitalize()}")
+            st.write(f"### 📈 Previsão de Vendas vs. Vendas Reais em função de {variavel_grafico.capitalize()}")
             
             if variavel_grafico == 'dia_semana':
-                dias_semana = {1: 'Segunda', 2: 'Terça', 3: 'Quarta', 4: 'Quinta', 5: 'Sexta', 6: 'Sábado', 7: 'Domingo'}
+                dias_semana = {7: 'Domingo', 1: 'Segunda', 2: 'Terça', 3: 'Quarta', 4: 'Quinta', 5: 'Sexta', 6: 'Sábado'}
                 df['dia_semana'] = df['dia_semana'].map(dias_semana)
+                df['dia_semana'] = pd.Categorical(df['dia_semana'], categories=['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'], ordered=True)
             
             df_plot = df[[variavel_grafico, 'vendas', 'previsao_vendas']].groupby(variavel_grafico).mean()
-            st.write(f"### 📈 Previsão de Vendas vs. Vendas Reais em função de {variavel_grafico.capitalize()}")
             st.line_chart(df_plot)
 
     st.sidebar.button("🗑️ Limpar Dados", on_click=lambda: st.session_state.pop('df', None))
