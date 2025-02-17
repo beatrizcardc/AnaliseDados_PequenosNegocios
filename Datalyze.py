@@ -44,6 +44,18 @@ def carregar_dados():
         return df
     return None
 
+# Função de previsão de vendas
+def prever_vendas(df):
+    if {'dia_semana', 'horario', 'temperatura', 'vendas'}.issubset(df.columns):
+        X = df[['dia_semana', 'horario', 'temperatura']]
+        y = df['vendas']
+        modelo = LinearRegression().fit(X, y)
+        df['previsao_vendas'] = modelo.predict(X)
+        return df
+    else:
+        st.warning("O arquivo precisa conter as colunas: dia_semana, horario, temperatura, vendas. Por favor, verifique se selecionou a planilha correta. Para a análise de previsão de vendas, selecione a planilha de 'Vendas'.")
+        return None
+
 # Função de clusterização
 def clusterizar_clientes(df):
     if {'idade', 'frequencia_compra', 'gasto_medio'}.issubset(df.columns):
@@ -79,6 +91,15 @@ df = carregar_dados()
 if df is not None:
     st.write("### 📋 Dados Carregados")
     st.dataframe(df.head())
+
+    if analise_selecionada == "Previsão de Vendas":
+        # Adiciona a opção para o usuário escolher a variável para visualização do gráfico
+        variavel_grafico = st.sidebar.selectbox("Escolha a variável para visualizar a previsão:", ["horario", "dia_semana", "temperatura"])
+        df, modelo = prever_vendas(df)
+        if df is not None:
+            st.write("### 📈 Previsão de Vendas")
+            st.write(f"### 📈 Previsão de Vendas em função de {variavel_grafico.capitalize()}")
+        st.line_chart(df[[variavel_grafico, 'previsao_vendas']].set_index(variavel_grafico))
 
     if analise_selecionada == "Clusterização de Clientes":
         df = clusterizar_clientes(df)
