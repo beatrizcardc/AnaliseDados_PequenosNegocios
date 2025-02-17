@@ -42,7 +42,29 @@ def carregar_dados():
         return df
     return None
 
-# Função de testes estatísticos com explicação
+# Função de previsão de vendas
+def prever_vendas(df):
+    if {'dia_semana', 'horario', 'temperatura', 'vendas'}.issubset(df.columns):
+        X = df[['dia_semana', 'horario', 'temperatura']]
+        y = df['vendas']
+        modelo = LinearRegression().fit(X, y)
+        df['previsao_vendas'] = modelo.predict(X)
+        return df, modelo
+    else:
+        st.warning("O arquivo precisa conter as colunas: dia_semana, horario, temperatura, vendas.")
+        return None, None
+
+# Função de clusterização
+def clusterizar_clientes(df):
+    if {'idade', 'frequencia_compra', 'gasto_medio'}.issubset(df.columns):
+        kmeans = KMeans(n_clusters=3, random_state=42).fit(df[['idade', 'frequencia_compra', 'gasto_medio']])
+        df['cluster'] = kmeans.labels_
+        return df
+    else:
+        st.warning("O arquivo precisa conter as colunas: idade, frequencia_compra, gasto_medio.")
+        return None
+
+# Função de testes estatísticos
 def testes_estatisticos(df):
     if {'grupo', 'vendas'}.issubset(df.columns):
         grupos = df.groupby('grupo')['vendas'].apply(list)
@@ -68,7 +90,26 @@ if df is not None:
     st.write("### 📋 Dados Carregados")
     st.dataframe(df.head())
 
-    if analise_selecionada == "Testes Estatísticos":
+    if analise_selecionada == "Previsão de Vendas":
+        df, modelo = prever_vendas(df)
+        if df is not None:
+            st.write("### 📈 Previsão de Vendas")
+            st.line_chart(df[['vendas', 'previsao_vendas']])
+
+    elif analise_selecionada == "Clusterização de Clientes":
+        df = clusterizar_clientes(df)
+        if df is not None:
+            st.write("### 👥 Segmentação de Clientes")
+            fig, ax = plt.subplots()
+            for cluster in df['cluster'].unique():
+                cluster_data = df[df['cluster'] == cluster]
+                ax.scatter(cluster_data['idade'], cluster_data['gasto_medio'], label=f'Cluster {cluster}')
+            ax.set_xlabel('Idade')
+            ax.set_ylabel('Gasto Médio')
+            ax.legend()
+            st.pyplot(fig)
+
+    elif analise_selecionada == "Testes Estatísticos":
         teste, p, explicacao = testes_estatisticos(df)
         if teste:
             st.write(f"### 📊 Resultado do {teste}")
@@ -80,6 +121,7 @@ if df is not None:
                 st.info("Nenhuma diferença significativa encontrada. Isso sugere que os grupos analisados têm médias semelhantes.")
 
     st.sidebar.button("🗑️ Limpar Dados", on_click=lambda: st.session_state.pop('df', None))
+
 
 # Rodapé
 st.markdown("---")
