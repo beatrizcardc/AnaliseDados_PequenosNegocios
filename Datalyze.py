@@ -92,10 +92,13 @@ if df is not None:
     st.dataframe(df.head())
 
     if analise_selecionada == "Previsão de Vendas":
+        # Adiciona a opção para o usuário escolher a variável para visualização do gráfico
+        variavel_grafico = st.sidebar.selectbox("Escolha a variável para visualizar a previsão:", ["horario", "dia_semana", "temperatura"])
         df, modelo = prever_vendas(df)
         if df is not None:
             st.write("### 📈 Previsão de Vendas")
-            st.line_chart(df[['vendas', 'previsao_vendas']])
+                    st.write(f"### 📈 Previsão de Vendas em função de {variavel_grafico.capitalize()}")
+        st.line_chart(df[[variavel_grafico, 'previsao_vendas']].set_index(variavel_grafico))
 
     elif analise_selecionada == "Clusterização de Clientes":
         df = clusterizar_clientes(df)
@@ -122,6 +125,7 @@ if df is not None:
                 st.info("Nenhuma diferença significativa encontrada. Isso sugere que os grupos analisados têm médias semelhantes.")
 
     st.sidebar.button("🗑️ Limpar Dados", on_click=lambda: st.session_state.pop('df', None))
+
 
 
 # Rodapé
