@@ -44,6 +44,18 @@ def carregar_dados():
         return df
     return None
 
+# Função de previsão de vendas
+def prever_vendas(df):
+    if {'dia_semana', 'horario', 'temperatura', 'vendas'}.issubset(df.columns):
+        X = df[['dia_semana', 'horario', 'temperatura']]
+        y = df['vendas']
+        modelo = LinearRegression().fit(X, y)
+        df['previsao_vendas'] = modelo.predict(X)
+        return df
+    else:
+        st.warning("O arquivo precisa conter as colunas: dia_semana, horario, temperatura, vendas. Por favor, verifique se selecionou a planilha correta. Para a análise de previsão de vendas, selecione a planilha de 'Vendas'.")
+        return None
+
 # Função de clusterização
 def clusterizar_clientes(df):
     if {'idade', 'frequencia_compra', 'gasto_medio'}.issubset(df.columns):
@@ -58,17 +70,18 @@ def clusterizar_clientes(df):
 def testes_estatisticos(df):
     if {'grupo', 'vendas'}.issubset(df.columns):
         grupos = df.groupby('grupo')['vendas'].apply(list)
+        explicacao = "O Teste T é usado para comparar a média de dois grupos distintos e verificar se há diferença estatisticamente significativa entre eles. Se o p-valor for menor que 0.05, rejeitamos a hipótese nula, indicando que há uma diferença significativa. Caso contrário, não há evidências suficientes para afirmar que os grupos são diferentes."
         if len(grupos) == 2:
             stat, p = ttest_ind(grupos.iloc[0], grupos.iloc[1])
-            return "Teste T", p
+            return "Teste T", p, explicacao
         elif len(grupos) > 2:
             stat, p = f_oneway(*grupos)
-            return "ANOVA", p
+            explicacao = "A Análise de Variância (ANOVA) é utilizada para comparar a média de três ou mais grupos e verificar se pelo menos um deles é significativamente diferente dos outros. Se o p-valor for menor que 0.05, há evidências de que pelo menos um grupo é diferente."
+            return "ANOVA", p, explicacao
         else:
-            return None, None
+            return None, None, ""
     else:
-        st.warning("O arquivo precisa conter as colunas: grupo, vendas. Por favor, verifique se selecionou a planilha correta. Para os testes estatísticos, selecione a planilha de 'Testes'.")
-        return None, None
+        return None, None, ""
 
 # Sidebar
 st.sidebar.title("📂 Opções de Análise")
@@ -79,28 +92,13 @@ if df is not None:
     st.write("### 📋 Dados Carregados")
     st.dataframe(df.head())
 
-    if analise_selecionada == "Clusterização de Clientes":
-        df = clusterizar_clientes(df)
+    if analise_selecionada == "Previsão de Vendas":
+        variavel_grafico = st.sidebar.selectbox("Escolha a variável para visualizar a previsão:", ["horario", "dia_semana", "temperatura"])
+        df = prever_vendas(df)
         if df is not None:
-            st.write("### 👥 Segmentação de Clientes")
-            fig, ax = plt.subplots()
-            for cluster in df['cluster'].unique():
-                cluster_data = df[df['cluster'] == cluster]
-                ax.scatter(cluster_data['idade'], cluster_data['gasto_medio'], label=f'Cluster {cluster}')
-            ax.set_xlabel('Idade')
-            ax.set_ylabel('Gasto Médio')
-            ax.legend()
-            st.pyplot(fig)
-
-    elif analise_selecionada == "Testes Estatísticos":
-        teste, p = testes_estatisticos(df)
-        if teste:
-            st.write(f"### 📊 Resultado do {teste}")
-            st.write(f"p-valor: {p:.4f}")
-            if p < 0.05:
-                st.success("Diferença estatisticamente significativa encontrada!")
-            else:
-                st.info("Nenhuma diferença significativa encontrada.")
+            st.write(f"### 📈 Previsão de Vendas vs. Vendas Reais em função de {variavel_grafico.capitalize()}")
+            df_plot = df[[variavel_grafico, 'vendas', 'previsao_vendas']].groupby(variavel_grafico).mean()
+            st.line_chart(df_plot)
 
     st.sidebar.button("🗑️ Limpar Dados", on_click=lambda: st.session_state.pop('df', None))
 
