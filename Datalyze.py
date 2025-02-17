@@ -105,6 +105,22 @@ if df is not None:
     st.write("### 📋 Dados Carregados")
     st.dataframe(df.head())
 
+    if analise_selecionada == "Previsão de Vendas":
+        variavel_grafico = st.sidebar.selectbox("Escolha a variável para visualizar a previsão:", ["horario", "dia_semana", "temperatura"])
+        df, modelo = prever_vendas(df)
+        
+        if df is not None:
+            st.write(f"### 📈 Previsão de Vendas vs. Vendas Reais em função de {variavel_grafico.capitalize()}")
+            
+            if variavel_grafico == 'dia_semana':
+                dias_semana = {1: 'Domingo', 2: 'Segunda', 3: 'Terça', 4: 'Quarta', 5: 'Quinta', 6: 'Sexta', 7: 'Sábado'}
+                df['dia_semana'] = df['dia_semana'].map(dias_semana)
+                df['dia_semana'] = pd.Categorical(df['dia_semana'], categories=["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"], ordered=True)
+                df = df.sort_values(by='dia_semana')
+            
+            df_plot = df[[variavel_grafico, 'vendas', 'previsao_vendas']].groupby(variavel_grafico).mean()
+            st.line_chart(df_plot)
+
     if analise_selecionada == "Clusterização de Clientes":
         df = clusterizar_clientes(df)
         if df is not None:
