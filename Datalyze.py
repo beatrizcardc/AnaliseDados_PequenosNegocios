@@ -52,14 +52,49 @@ def carregar_dados():
         return df
     return None
 
-# Função de clusterização
+# Função de clusterização com visualização
 def clusterizar_clientes(df):
-    if {'idade', 'frequencia_compra', 'gasto_medio'}.issubset(df.columns):
-        kmeans = KMeans(n_clusters=3, random_state=42).fit(df[['idade', 'frequencia_compra', 'gasto_medio']])
-        df['cluster'] = kmeans.labels_
+    # Verifica colunas necessárias
+    if not {'idade', 'frequencia_compra', 'gasto_medio'}.issubset(df.columns):
+        st.warning("""O arquivo precisa conter as colunas: 
+                   idade, frequencia_compra, gasto_medio. 
+                   Verifique se selecionou a planilha de 'Clientes'.""")
+        return None
+    
+    try:
+        # Clusterização
+        kmeans = KMeans(n_clusters=3, random_state=42)
+        df['cluster'] = kmeans.fit_predict(df[['idade', 'frequencia_compra', 'gasto_medio']])
+        
+        # Criação do gráfico
+        fig, ax = plt.subplots(figsize=(10, 6))
+        cores = ['#FF6B6B', '#4ECDC4', '#45B7D1']  # Palette de cores acessível
+        
+        for cluster in sorted(df['cluster'].unique()):
+            dados_cluster = df[df['cluster'] == cluster]
+            ax.scatter(
+                dados_cluster['idade'], 
+                dados_cluster['gasto_medio'],
+                s=100,  # Tamanho dos pontos
+                c=cores[cluster],
+                label=f'Cluster {cluster + 1}',
+                alpha=0.7
+            )
+            
+        # Personalização do gráfico
+        ax.set_title('Segmentação de Clientes', pad=20)
+        ax.set_xlabel('Idade', labelpad=10)
+        ax.set_ylabel('Gasto Médio (R$)', labelpad=10)
+        ax.grid(True, linestyle='--', alpha=0.3)
+        ax.legend(title='Grupos')
+        
+        # Exibição no Streamlit
+        st.pyplot(fig)
+        
         return df
-    else:
-        st.warning("O arquivo precisa conter as colunas: idade, frequencia_compra, gasto_medio. Por favor, verifique se selecionou a planilha correta. Para a análise de clusterização de clientes, selecione a planilha de 'Clientes'.")
+        
+    except Exception as e:
+        st.error(f"Erro na clusterização: {str(e)}")
         return None
 
 # Função de testes estatísticos
@@ -88,19 +123,40 @@ if df is not None:
     st.write("### 📋 Dados Carregados")
     st.dataframe(df.head())
 
-    if analise_selecionada == "Clusterização de Clientes":
-        df = clusterizar_clientes(df)
-        if df is not None:
-            st.write("### 👥 Segmentação de Clientes")
+    # Análise de Previsão de Vendas
+    if analise_selecionada == "Previsão de Vendas":
+        if {'data', 'vendas'}.issubset(df.columns):
+            # Modelo de Regressão Linear
+            df['dias'] = (df['data'] - df['data'].min()).dt.days
+            model = LinearRegression().fit(df[['dias']], df['vendas'])
+            df['previsao'] = model.predict(df[['dias']])
+            
+            # Plot
+            st.write("### 📈 Previsão de Vendas")
             fig, ax = plt.subplots()
-            for cluster in df['cluster'].unique():
-                cluster_data = df[df['cluster'] == cluster]
-                ax.scatter(cluster_data['idade'], cluster_data['gasto_medio'], label=f'Cluster {cluster}')
-            ax.set_xlabel('Idade')
-            ax.set_ylabel('Gasto Médio')
+            ax.plot(df['data'], df['vendas'], label='Vendas Reais')
+            ax.plot(df['data'], df['previsao'], linestyle='--', label='Previsão')
+            ax.set_xlabel('Data')
+            ax.set_ylabel('Vendas')
             ax.legend()
             st.pyplot(fig)
-    
+        else:
+            st.warning("⚠️ Dados incompletos! Necessário colunas 'data' e 'vendas'.")
+
+    # Análise de Clusterização
+    elif analise_selecionada == "Clusterização de Clientes":
+        df_clusterizado = clusterizar_clientes(df)
+        if df_clusterizado is not None:
+            st.write("### Detalhes dos Clusters")
+            st.dataframe(
+                df_clusterizado.groupby('cluster').agg({
+                    'idade': 'mean',
+                    'frequencia_compra': 'mean',
+                    'gasto_medio': 'mean'
+                }).style.format("{:.1f}")
+            )
+
+    # Análise Estatística
     elif analise_selecionada == "Testes Estatísticos":
         teste, p, explicacao = testes_estatisticos(df)
         if teste:
