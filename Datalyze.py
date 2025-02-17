@@ -97,7 +97,7 @@ if df is not None:
         df, modelo = prever_vendas(df)
         if df is not None:
             st.write("### 📈 Previsão de Vendas")
-                    st.write(f"### 📈 Previsão de Vendas em função de {variavel_grafico.capitalize()}")
+            st.write(f"### 📈 Previsão de Vendas em função de {variavel_grafico.capitalize()}")
         st.line_chart(df[[variavel_grafico, 'previsao_vendas']].set_index(variavel_grafico))
 
     elif analise_selecionada == "Clusterização de Clientes":
