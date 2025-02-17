@@ -44,6 +44,13 @@ def carregar_dados():
         return df
     return None
 
+# Função para calcular o Top 10 produtos mais vendidos
+def top_10_produtos(df):
+    if 'Produto' in df.columns and 'Vendas' in df.columns:
+        top_produtos = df.groupby("Produto")["Vendas"].sum().nlargest(10).index
+        return df[df["Produto"].isin(top_produtos)]
+    return df
+
 # Função de previsão de vendas
 def prever_vendas(df):
     if {'dia_semana', 'horario', 'temperatura', 'vendas'}.issubset(df.columns):
@@ -92,11 +99,20 @@ if 'df' in st.session_state and st.session_state['df'] is not None and 'data' in
     df = df[(df['data'] >= pd.Timestamp(data_inicio)) & (df['data'] <= pd.Timestamp(data_fim))]
 st.sidebar.title("📂 Opções de Análise")
 analise_selecionada = st.sidebar.selectbox("Escolha uma análise", ["Previsão de Vendas", "Clusterização de Clientes", "Testes Estatísticos"])
-df = carregar_dados()
 
+# Carregar os dados
+df = carregar_dados()
 if df is not None:
-    st.write("### 📋 Dados Carregados")
+    df = top_10_produtos(df)
+
+    st.write("### 📋 Dados Carregados (Top 10 Produtos Mais Vendidos)")
     st.dataframe(df.head())
+
+    analise_selecionada = st.sidebar.selectbox("Escolha uma análise", ["Previsão de Vendas", "Clusterização de Clientes", "Testes Estatísticos"])
+
+#if df is not None:
+    #st.write("### 📋 Dados Carregados")
+    #st.dataframe(df.head())
 
     if analise_selecionada == "Previsão de Vendas":
         # Adiciona a opção para o usuário escolher a variável para visualização do gráfico
