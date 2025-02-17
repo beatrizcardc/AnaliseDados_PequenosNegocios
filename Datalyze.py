@@ -44,18 +44,6 @@ def carregar_dados():
         return df
     return None
 
-# Função de previsão de vendas
-def prever_vendas(df):
-    if {'dia_semana', 'horario', 'temperatura', 'vendas'}.issubset(df.columns):
-        X = df[['dia_semana', 'horario', 'temperatura']]
-        y = df['vendas']
-        modelo = LinearRegression().fit(X, y)
-        df['previsao_vendas'] = modelo.predict(X)
-        return df
-    else:
-        st.warning("O arquivo precisa conter as colunas: dia_semana, horario, temperatura, vendas. Por favor, verifique se selecionou a planilha correta. Para a análise de previsão de vendas, selecione a planilha de 'Vendas'.")
-        return None
-
 # Função de clusterização
 def clusterizar_clientes(df):
     if {'idade', 'frequencia_compra', 'gasto_medio'}.issubset(df.columns):
@@ -92,14 +80,30 @@ if df is not None:
     st.write("### 📋 Dados Carregados")
     st.dataframe(df.head())
 
-    if analise_selecionada == "Previsão de Vendas":
-        variavel_grafico = st.sidebar.selectbox("Escolha a variável para visualizar a previsão:", ["horario", "dia_semana", "temperatura"])
-        df = prever_vendas(df)
+    if analise_selecionada == "Clusterização de Clientes":
+        df = clusterizar_clientes(df)
         if df is not None:
-            st.write(f"### 📈 Previsão de Vendas vs. Vendas Reais em função de {variavel_grafico.capitalize()}")
-            df_plot = df[[variavel_grafico, 'vendas', 'previsao_vendas']].groupby(variavel_grafico).mean()
-            st.line_chart(df_plot)
-
+            st.write("### 👥 Segmentação de Clientes")
+            fig, ax = plt.subplots()
+            for cluster in df['cluster'].unique():
+                cluster_data = df[df['cluster'] == cluster]
+                ax.scatter(cluster_data['idade'], cluster_data['gasto_medio'], label=f'Cluster {cluster}')
+            ax.set_xlabel('Idade')
+            ax.set_ylabel('Gasto Médio')
+            ax.legend()
+            st.pyplot(fig)
+    
+    elif analise_selecionada == "Testes Estatísticos":
+        teste, p, explicacao = testes_estatisticos(df)
+        if teste:
+            st.write(f"### 📊 Resultado do {teste}")
+            st.write(f"p-valor: {p:.4f}")
+            st.write(f"📌 **Explicação:** {explicacao}")
+            if p < 0.05:
+                st.success("Diferença estatisticamente significativa encontrada! Isso indica que os grupos analisados possuem médias diferentes com uma confiança maior que 95%.")
+            else:
+                st.info("Nenhuma diferença significativa encontrada. Isso sugere que os grupos analisados têm médias semelhantes.")
+    
     st.sidebar.button("🗑️ Limpar Dados", on_click=lambda: st.session_state.pop('df', None))
 
 
