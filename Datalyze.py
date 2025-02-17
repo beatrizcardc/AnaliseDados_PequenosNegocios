@@ -44,16 +44,30 @@ def carregar_dados():
         return df
     return None
 
-# Função de previsão de vendas
-def prever_vendas(df):
-    if {'dia_semana', 'horario', 'temperatura', 'vendas'}.issubset(df.columns):
-        X = df[['dia_semana', 'horario', 'temperatura']]
-        y = df['vendas']
-        modelo = LinearRegression().fit(X, y)
-        df['previsao_vendas'] = modelo.predict(X)
-        return df, modelo
+# Função de clusterização
+def clusterizar_clientes(df):
+    if {'idade', 'frequencia_compra', 'gasto_medio'}.issubset(df.columns):
+        kmeans = KMeans(n_clusters=3, random_state=42).fit(df[['idade', 'frequencia_compra', 'gasto_medio']])
+        df['cluster'] = kmeans.labels_
+        return df
     else:
-        st.warning("O arquivo precisa conter as colunas: dia_semana, horario, temperatura, vendas. Por favor, verifique se selecionou a planilha correta. Para a análise de previsão de vendas, selecione a planilha de 'Vendas'.")
+        st.warning("O arquivo precisa conter as colunas: idade, frequencia_compra, gasto_medio. Por favor, verifique se selecionou a planilha correta. Para a análise de clusterização, selecione a planilha de 'Clientes'.")
+        return None
+
+# Função de testes estatísticos
+def testes_estatisticos(df):
+    if {'grupo', 'vendas'}.issubset(df.columns):
+        grupos = df.groupby('grupo')['vendas'].apply(list)
+        if len(grupos) == 2:
+            stat, p = ttest_ind(grupos.iloc[0], grupos.iloc[1])
+            return "Teste T", p
+        elif len(grupos) > 2:
+            stat, p = f_oneway(*grupos)
+            return "ANOVA", p
+        else:
+            return None, None
+    else:
+        st.warning("O arquivo precisa conter as colunas: grupo, vendas. Por favor, verifique se selecionou a planilha correta. Para os testes estatísticos, selecione a planilha de 'Testes'.")
         return None, None
 
 # Sidebar
@@ -65,20 +79,28 @@ if df is not None:
     st.write("### 📋 Dados Carregados")
     st.dataframe(df.head())
 
-    if analise_selecionada == "Previsão de Vendas":
-        # Adiciona a opção para o usuário escolher a variável para visualização do gráfico
-        variavel_grafico = st.sidebar.selectbox("Escolha a variável para visualizar a previsão:", ["horario", "dia_semana", "temperatura"])
-        df, modelo = prever_vendas(df)
+    if analise_selecionada == "Clusterização de Clientes":
+        df = clusterizar_clientes(df)
         if df is not None:
-            st.write(f"### 📈 Previsão de Vendas vs. Vendas Reais em função de {variavel_grafico.capitalize()}")
-            
-            if variavel_grafico == 'dia_semana':
-                dias_semana = {7: 'Domingo', 1: 'Segunda', 2: 'Terça', 3: 'Quarta', 4: 'Quinta', 5: 'Sexta', 6: 'Sábado'}
-                df['dia_semana'] = df['dia_semana'].map(dias_semana)
-                df['dia_semana'] = pd.Categorical(df['dia_semana'], categories=['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'], ordered=True)
-            
-            df_plot = df[[variavel_grafico, 'vendas', 'previsao_vendas']].groupby(variavel_grafico).mean()
-            st.line_chart(df_plot)
+            st.write("### 👥 Segmentação de Clientes")
+            fig, ax = plt.subplots()
+            for cluster in df['cluster'].unique():
+                cluster_data = df[df['cluster'] == cluster]
+                ax.scatter(cluster_data['idade'], cluster_data['gasto_medio'], label=f'Cluster {cluster}')
+            ax.set_xlabel('Idade')
+            ax.set_ylabel('Gasto Médio')
+            ax.legend()
+            st.pyplot(fig)
+
+    elif analise_selecionada == "Testes Estatísticos":
+        teste, p = testes_estatisticos(df)
+        if teste:
+            st.write(f"### 📊 Resultado do {teste}")
+            st.write(f"p-valor: {p:.4f}")
+            if p < 0.05:
+                st.success("Diferença estatisticamente significativa encontrada!")
+            else:
+                st.info("Nenhuma diferença significativa encontrada.")
 
     st.sidebar.button("🗑️ Limpar Dados", on_click=lambda: st.session_state.pop('df', None))
 
