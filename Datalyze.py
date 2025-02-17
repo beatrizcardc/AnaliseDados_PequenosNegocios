@@ -51,7 +51,7 @@ def prever_vendas(df):
         df['previsao_vendas'] = modelo.predict(X)
         return df, modelo
     else:
-        st.warning("O arquivo precisa conter as colunas: dia_semana, horario, temperatura, vendas.")
+        st.warning("O arquivo precisa conter as colunas: dia_semana, horario, temperatura, vendas. Por favor, verifique se selecionou a planilha correta. Para a análise de previsão de vendas, selecione a planilha de 'Vendas'.")
         return None, None
 
 # Função de clusterização
@@ -61,7 +61,7 @@ def clusterizar_clientes(df):
         df['cluster'] = kmeans.labels_
         return df
     else:
-        st.warning("O arquivo precisa conter as colunas: idade, frequencia_compra, gasto_medio.")
+        st.warning("O arquivo precisa conter as colunas: idade, frequencia_compra, gasto_medio. Por favor, verifique se selecionou a planilha correta. Para a análise de clusterização de clientes, selecione a planilha de 'Clientes'.")
         return None
 
 # Função de testes estatísticos
@@ -77,7 +77,8 @@ def testes_estatisticos(df):
             explicacao = "A Análise de Variância (ANOVA) é utilizada para comparar a média de três ou mais grupos e verificar se pelo menos um deles é significativamente diferente dos outros. Se o p-valor for menor que 0.05, há evidências de que pelo menos um grupo é diferente."
             return "ANOVA", p, explicacao
         else:
-            return None, None, ""
+            st.warning("O arquivo precisa conter as colunas: grupo, vendas. Por favor, verifique se selecionou a planilha correta. Para os testes estatísticos, selecione a planilha de 'Testes'.")
+        return None, None, ""
     else:
         return None, None, ""
 
